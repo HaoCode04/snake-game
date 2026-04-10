@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>经典贪吃蛇 - Pro版</title>
+    <title>经典贪吃蛇 - 舒享版</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background: #1C1C1E; /* iOS 深色模式背景 */
+            background: #1C1C1E;
             color: #fff;
             font-family: -apple-system, sans-serif;
             display: flex;
@@ -17,12 +17,12 @@
             justify-content: center;
             height: 100vh;
             overflow: hidden;
-            touch-action: none; /* 禁用浏览器默认手势，防止误触翻页 */
+            touch-action: none;
         }
         #scoreBoard {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 600;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             color: #0A84FF;
         }
         canvas {
@@ -30,55 +30,56 @@
             border: 3px solid #3A3A3C;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 90vw; /* 确保手机不溢出 */
+            max-width: 95vw; /* 稍微再宽一点 */
         }
+        /* 按钮区域优化：变大，间距更合理 */
         #controls {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-top: 25px;
+            gap: 15px;
+            margin-top: 30px;
+            padding-bottom: 20px;
         }
         .control-btn {
             background: #2C2C2E;
             color: white;
-            width: 65px;
-            height: 65px;
+            width: 85px;  /* 按钮从 65 增加到 85 */
+            height: 85px; /* 按钮从 65 增加到 85 */
             display: flex;
             justify-content: center;
             align-items: center;
-            border-radius: 50%; /* 圆形按钮更像控制杆 */
-            font-size: 24px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border-radius: 20px; /* 改为 iOS 风格的圆角矩形，触控面积更大 */
+            font-size: 32px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
             -webkit-tap-highlight-color: transparent;
         }
-        .control-btn:active { background: #3A3A3C; transform: scale(0.92); }
+        .control-btn:active { background: #3A3A3C; transform: scale(0.9); }
         .up { grid-column: 2; }
         .left { grid-column: 1; grid-row: 2;}
         .right { grid-column: 3; grid-row: 2;}
         .down { grid-column: 2; grid-row: 3;}
         
-        /* 游戏结束提示 */
         #msg {
             position: absolute;
-            top: 40%;
-            background: rgba(0,0,0,0.8);
-            padding: 20px;
-            border-radius: 15px;
+            z-index: 10;
+            background: rgba(0,0,0,0.85);
+            padding: 30px;
+            border-radius: 20px;
             text-align: center;
-            display: none; /* 默认隐藏 */
-            border: 1px solid #0A84FF;
+            display: none;
+            border: 2px solid #32D74B;
         }
     </style>
 </head>
 <body>
 
-    <div id="scoreBoard">Score: 0</div>
+    <div id="scoreBoard">得分: 0</div>
     <canvas id="gameCanvas" width="360" height="360"></canvas>
 
     <div id="msg">
-        <h2 style="margin:0">游戏结束</h2>
-        <p id="finalScore"></p>
-        <button onclick="resetGame()" style="background:#0A84FF; border:none; color:white; padding:10px 20px; border-radius:10px;">重新开始</button>
+        <h2 style="margin:0; color:#32D74B;">游戏结束</h2>
+        <p id="finalScore" style="margin:15px 0;"></p>
+        <button onclick="resetGame()" style="background:#32D74B; border:none; color:black; padding:12px 25px; border-radius:10px; font-weight:bold; font-size:16px;">重新开始</button>
     </div>
 
     <div id="controls">
@@ -99,15 +100,14 @@
         const tileCount = canvas.width / gridSize;
         
         let score = 0;
-        let snake = [{x: 10, y: 10}];
+        let snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}]; // 初始稍微长一点点，手感更好
         let food = {x: 5, y: 5};
-        let d = 'right';
+        let d = 'up';
         let isGameOver = false;
 
         function draw() {
-            if(isGameOver) return; // 死亡后停止执行逻辑
+            if(isGameOver) return;
 
-            // 移动蛇头
             let snakeX = snake[0].x;
             let snakeY = snake[0].y;
 
@@ -116,20 +116,24 @@
             if (d === 'right') snakeX++;
             if (d === 'down') snakeY++;
 
-            // 死亡判定
-            if (snakeX < 0 || snakeX >= tileCount || snakeY < 0 || snakeY >= tileCount || collision(snakeX, snakeY, snake)) {
+            // --- 核心改动：穿墙逻辑 ---
+            if (snakeX < 0) snakeX = tileCount - 1;
+            if (snakeX >= tileCount) snakeX = 0;
+            if (snakeY < 0) snakeY = tileCount - 1;
+            if (snakeY >= tileCount) snakeY = 0;
+
+            // 唯一死法：撞到自己
+            if (collision(snakeX, snakeY, snake)) {
                 gameOver();
                 return;
             }
 
-            // 画布背景
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 吃食逻辑
             if (snakeX === food.x && snakeY === food.y) {
                 score += 10;
-                scoreElement.innerHTML = 'Score: ' + score;
+                scoreElement.innerHTML = '得分: ' + score;
                 createFood();
             } else {
                 snake.pop();
@@ -139,14 +143,15 @@
             snake.unshift(newHead);
 
             // 画食物
-            ctx.fillStyle = '#FF453A'; // iOS 红色
+            ctx.fillStyle = '#FF453A';
             ctx.beginPath();
             ctx.arc(food.x * gridSize + gridSize/2, food.y * gridSize + gridSize/2, gridSize/2 - 2, 0, Math.PI*2);
             ctx.fill();
 
             // 画蛇
             snake.forEach((part, index) => {
-                ctx.fillStyle = (index === 0) ? '#30D158' : '#32D74B'; // iOS 绿色
+                ctx.fillStyle = (index === 0) ? '#30D158' : '#32D74B';
+                // 蛇身画得稍微圆润一点
                 ctx.fillRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2);
             });
         }
@@ -156,6 +161,8 @@
                 x: Math.floor(Math.random() * tileCount),
                 y: Math.floor(Math.random() * tileCount)
             };
+            // 确保食物不在蛇身上
+            if(collision(food.x, food.y, snake)) createFood();
         }
 
         function collision(x, y, array) {
@@ -173,9 +180,9 @@
 
         function resetGame() {
             score = 0;
-            scoreElement.innerHTML = 'Score: 0';
-            snake = [{x: 10, y: 10}];
-            d = 'right';
+            scoreElement.innerHTML = '得分: 0';
+            snake = [{x: 10, y: 10}, {x: 10, y: 11}, {x: 10, y: 12}];
+            d = 'up';
             isGameOver = false;
             msgBox.style.display = 'none';
             createFood();
@@ -188,15 +195,10 @@
             if (dir === 'down' && d !== 'up') d = 'down';
         }
 
-        document.addEventListener('keydown', e => {
-            if (e.key === 'ArrowLeft' && d !== 'right') d = 'left';
-            if (e.key === 'ArrowUp' && d !== 'down') d = 'up';
-            if (e.key === 'ArrowRight' && d !== 'left') d = 'right';
-            if (e.key === 'ArrowDown' && d !== 'up') d = 'down';
-        });
-
-        setInterval(draw, 360); // 稍微加快了一点点速度，更有挑战性
+        // 速度调慢到 540，玩起来更从容
+        setInterval(draw, 180); 
     </script>
 </body>
 </html>
+
 
