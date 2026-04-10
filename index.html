@@ -131,6 +131,31 @@
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // 1. 画背景
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. 绘制网格辅助线 (新增)
+            ctx.strokeStyle = '#2C2C2E'; // 深灰色，不抢眼但能看清
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= tileCount; i++) {
+
+                // 画竖线
+
+                ctx.beginPath();
+
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+
+                ctx.stroke();
+
+                // 画横线
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+
             if (snakeX === food.x && snakeY === food.y) {
                 score += 10;
                 scoreElement.innerHTML = '得分: ' + score;
